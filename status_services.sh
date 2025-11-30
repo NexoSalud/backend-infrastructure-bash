@@ -28,6 +28,7 @@ get_url_for_name() {
   case "$name" in
     employees) echo "$EMPLOYEES_URL" ;;
     users) echo "$USERS_URL" ;;
+    schedule) echo "$SCHEDULE_URL" ;;
     gateway) echo "$GATEWAY_URL" ;;
     *) echo "http://localhost" ;;
   esac

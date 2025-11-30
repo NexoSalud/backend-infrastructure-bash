@@ -4,11 +4,13 @@
 # Puertos
 export EMPLOYEES_PORT=${EMPLOYEES_PORT:-8081}
 export USERS_PORT=${USERS_PORT:-8082}
+export SCHEDULE_PORT=${SCHEDULE_PORT:-8083}
 export GATEWAY_PORT=${GATEWAY_PORT:-8080}
 
 # URLs
 export EMPLOYEES_URL=${EMPLOYEES_URL:-http://localhost:${EMPLOYEES_PORT}}
 export USERS_URL=${USERS_URL:-http://localhost:${USERS_PORT}}
+export SCHEDULE_URL=${SCHEDULE_URL:-http://localhost:${SCHEDULE_PORT}}
 export GATEWAY_URL=${GATEWAY_URL:-http://localhost:${GATEWAY_PORT}}
 
 # JWT

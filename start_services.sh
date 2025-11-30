@@ -57,12 +57,15 @@ start_module() {
 start_module "$SCRIPT_DIR/backend-module-employees" "$EMPLOYEES_PORT" "employees"
 # start users
 start_module "$SCRIPT_DIR/backend-module-users" "$USERS_PORT" "users"
-# start gateway (depends on employees/users)
+# start schedule
+start_module "$SCRIPT_DIR/backend-module-schedule" "$SCHEDULE_PORT" "schedule"
+# start gateway (depends on employees/users/schedule)
 start_module "$SCRIPT_DIR/backend-module-gateway" "$GATEWAY_PORT" "gateway"
 
 # Wait for ports
 wait_for_port "localhost" "$EMPLOYEES_PORT" || echo "Warning: employees did not start cleanly"
 wait_for_port "localhost" "$USERS_PORT" || echo "Warning: users did not start cleanly"
+wait_for_port "localhost" "$SCHEDULE_PORT" || echo "Warning: schedule did not start cleanly"
 wait_for_port "localhost" "$GATEWAY_PORT" || echo "Warning: gateway did not start cleanly"
 
 echo "Services started. PIDs recorded in $PIDS_FILE"
