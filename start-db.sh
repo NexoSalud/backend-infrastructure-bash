@@ -14,21 +14,18 @@ docker compose down > /dev/null 2>&1
 
 # Iniciar PostgreSQL
 echo "🚀 Iniciando PostgreSQL..."
-docker compose up -d
+docker compose up postgres -d
 
 # Verificar que el contenedor esté corriendo
-sleep 3
-if docker compose ps | grep -q "nexosalud-postgres.*Up"; then
+sleep 5
+if docker compose ps postgres | grep -q "Up"; then
     echo "✅ PostgreSQL iniciado correctamente!"
     echo "🔗 Disponible en: localhost:5432"
     echo "👤 Usuario: postgres"
     echo "🔑 Contraseña: postgres"
     echo ""
     echo "🗄️  Bases de datos disponibles:"
-    echo "   • gatewaydb"
-    echo "   • usersdb" 
-    echo "   • employeesdb"
-    echo "   • scheduledb"
+    echo "   • nexosalud (todas las tablas de todos los módulos)"
 else
     echo "❌ Error: PostgreSQL no pudo iniciarse"
     docker compose logs postgres

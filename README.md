@@ -33,8 +33,12 @@ Sistema de microservicios reactivos para gestión de servicios médicos, desarro
 git clone <tu-repo>
 cd nexo
 
-# Iniciar PostgreSQL y preparar el entorno
+# Opción A: Preparar entorno para desarrollo local
 ./start-nexo.sh
+./start_services.sh
+
+# Opción B: Solo iniciar PostgreSQL
+./start-db.sh
 ```
 
 ### 2. Iniciar Servicios:
@@ -101,7 +105,7 @@ docker-compose down --volumes --rmi all
 
 ### URLs con Docker:
 - **Gateway (único expuesto)**: http://localhost:8080
-- **PostgreSQL**: localhost:5432
+- **PostgreSQL**: localhost:5432 (base de datos: nexosalud)
 - **Servicios internos**: Solo accesibles através del gateway
 
 ## 🔗 URLs Importantes
@@ -122,15 +126,35 @@ docker-compose down --volumes --rmi all
 - **Usuario**: postgres
 - **Contraseña**: postgres
 
-## 🗄️ Bases de Datos
+## 🗄️ Base de Datos
 
-Cada servicio tiene su propia base de datos:
-- **gatewaydb** - Configuración del gateway
-- **usersdb** - Gestión de usuarios
-- **employeesdb** - Datos de empleados
-- **scheduledb** - Horarios y citas
+Todos los servicios comparten una única base de datos PostgreSQL:
+- **Base de Datos**: nexosalud
+- **Esquemas**: Cada servicio utiliza sus propias tablas dentro de la misma base
+- **Usuario**: postgres  
+- **Contraseña**: postgres
+- **Puerto**: 5432
 
 ## 🛠️ Comandos Útiles
+
+### Scripts de Inicio:
+```bash
+# Preparar entorno completo (PostgreSQL + compilar módulos)
+./start-nexo.sh
+
+# Solo iniciar PostgreSQL
+./start-db.sh
+
+# Iniciar servicios individuales (requiere PostgreSQL activo)
+./start-gateway.sh     # Gateway en puerto 8080
+./start-users.sh       # Users Service en puerto 8081
+./start-employees.sh   # Employees Service en puerto 8082
+./start-schedule.sh    # Schedule Service en puerto 8083
+
+# Iniciación completa con Docker
+./docker-start.sh      # Todos los servicios en contenedores
+./docker-stop.sh       # Detener servicios Docker
+```
 
 ### Docker:
 ```bash
@@ -156,7 +180,7 @@ docker compose exec webflux-postgres psql -U postgres
 \l
 
 # Conectar a una base específica
-\c usersdb
+\c nexosalud
 ```
 
 ### Maven:

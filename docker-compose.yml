@@ -29,7 +29,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SERVER_PORT=8081
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/usersdb
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
       - SPRING_R2DBC_USERNAME=postgres
       - SPRING_R2DBC_PASSWORD=postgres
     depends_on:
@@ -48,7 +48,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SERVER_PORT=8082
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/employeesdb
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
       - SPRING_R2DBC_USERNAME=postgres
       - SPRING_R2DBC_PASSWORD=postgres
       - JWT_SECRET=mySecretKeyForJWTTokenGenerationAndValidation1234567890
@@ -73,7 +73,7 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SERVER_PORT=8083
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/scheduledb
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
       - SPRING_R2DBC_USERNAME=postgres
       - SPRING_R2DBC_PASSWORD=postgres
     depends_on:
