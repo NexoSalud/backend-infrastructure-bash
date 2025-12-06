@@ -39,7 +39,22 @@ cd nexo
 
 ### 2. Iniciar Servicios:
 
-#### Opción A: Servicios Individuales
+#### Opción A: Con Docker (Recomendado)
+```bash
+# Iniciar todos los servicios con Docker Compose
+./docker-start.sh
+
+# Verificar que los servicios estén corriendo
+docker-compose ps
+
+# Ver logs de todos los servicios
+docker-compose logs -f
+
+# Ver logs de un servicio específico
+docker-compose logs -f gateway-service
+```
+
+#### Opción B: Servicios Individuales (Desarrollo)
 ```bash
 # En terminales separadas:
 ./start-gateway.sh     # Gateway (puerto 8080)
@@ -58,6 +73,36 @@ cd backend-module-users && mvn spring-boot:run -Dspring-boot.run.arguments="--se
 cd backend-module-employees && mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8082"
 cd backend-module-schedule && mvn spring-boot:run -Dspring-boot.run.arguments="--server.port=8083"
 ```
+
+## 🐳 Despliegue con Docker
+
+### Arquitectura Docker:
+- **Servicios Internos**: Solo se comunican entre ellos (red interna)
+- **Gateway Expuesto**: Único punto de acceso desde el host (puerto 8080)
+- **Base de Datos**: PostgreSQL compartida con múltiples bases de datos
+
+### Comandos Docker:
+```bash
+# Iniciar todos los servicios
+./docker-start.sh
+
+# Detener servicios
+./docker-stop.sh
+
+# Ver logs en tiempo real
+docker-compose logs -f
+
+# Reconstruir imágenes
+docker-compose up --build
+
+# Limpiar todo (contenedores, imágenes, volúmenes)
+docker-compose down --volumes --rmi all
+```
+
+### URLs con Docker:
+- **Gateway (único expuesto)**: http://localhost:8080
+- **PostgreSQL**: localhost:5432
+- **Servicios internos**: Solo accesibles através del gateway
 
 ## 🔗 URLs Importantes
 

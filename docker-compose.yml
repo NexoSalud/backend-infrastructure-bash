@@ -1,4 +1,5 @@
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15
     container_name: nexosalud-postgres
@@ -18,6 +19,102 @@ services:
       retries: 5
     networks:
       - nexo-network
+
+  # Users Service
+  users-service:
+    build:
+      context: ./backend-module-users
+      dockerfile: Dockerfile
+    container_name: nexosalud-users
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8081
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/usersdb
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # Employees Service
+  employees-service:
+    build:
+      context: ./backend-module-employees
+      dockerfile: Dockerfile
+    container_name: nexosalud-employees
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8082
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/employeesdb
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+      - JWT_SECRET=mySecretKeyForJWTTokenGenerationAndValidation1234567890
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USERNAME=${EMAIL_USERNAME:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - EMAIL_FROM=${EMAIL_FROM:-no-reply@nexosalud.com}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # Schedule Service
+  schedule-service:
+    build:
+      context: ./backend-module-schedule
+      dockerfile: Dockerfile
+    container_name: nexosalud-schedule
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8083
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/scheduledb
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # Gateway Service (Only service exposed to host)
+  gateway-service:
+    build:
+      context: ./backend-module-gateway
+      dockerfile: Dockerfile
+    container_name: nexosalud-gateway
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8080
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+      - JWT_SECRET=mySecretKeyForJWTTokenGenerationAndValidation1234567890
+      - AUTH_MOCK_MODE=false
+      # Internal service URLs (using container names)
+      - USERS_SERVICE_URL=http://users-service:8081
+      - EMPLOYEES_SERVICE_URL=http://employees-service:8082
+      - SCHEDULE_SERVICE_URL=http://schedule-service:8083
+    ports:
+      - "8080:8080"  # Only the gateway is exposed to the host
+    depends_on:
+      postgres:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+      employees-service:
+        condition: service_started
+      schedule-service:
+        condition: service_started
+    networks:
+      - nexo-network
+    restart: unless-stopped
 
 networks:
   nexo-network:
