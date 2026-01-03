@@ -1,0 +1,141 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: nexosalud-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - nexo-network
+
+  users-service:
+    build:
+      # Contexto Git remoto (monorepo) + subdirectorio del módulo
+      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-users
+      dockerfile: Dockerfile
+    container_name: nexosalud-users
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SERVER_PORT=${USERS_PORT}
+      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
+      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  employees-service:
+    build:
+      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-employees
+      dockerfile: Dockerfile
+    container_name: nexosalud-employees
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SERVER_PORT=${EMPLOYEES_PORT}
+      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
+      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - EMAIL_HOST=${EMAIL_HOST}
+      - EMAIL_PORT=${EMAIL_PORT}
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_RESET_PASSWORD_SUBJECT=${EMAIL_RESET_PASSWORD_SUBJECT}
+      - EMAIL_RESET_PASSWORD_TEXT=${EMAIL_RESET_PASSWORD_TEXT}
+      - EMAIL_RESET_PASSWORD_WEBSITE=${EMAIL_RESET_PASSWORD_WEBSITE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  schedule-service:
+    build:
+      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-schedule
+      dockerfile: Dockerfile
+    container_name: nexosalud-schedule
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SERVER_PORT=${SCHEDULE_PORT}
+      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
+      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  gateway-service:
+    build:
+      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-gateway
+      dockerfile: Dockerfile
+    container_name: nexosalud-gateway
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SERVER_PORT=${GATEWAY_PORT}
+      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
+      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_MOCK_MODE=${AUTH_MOCK_MODE}
+      - USERS_SERVICE_URL=http://users-service:${USERS_PORT}
+      - EMPLOYEES_SERVICE_URL=http://employees-service:${EMPLOYEES_PORT}
+      - SCHEDULE_SERVICE_URL=http://schedule-service:${SCHEDULE_PORT}
+    ports:
+      - "8080:${GATEWAY_PORT}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      users-service:
+        condition: service_started
+      employees-service:
+        condition: service_started
+      schedule-service:
+        condition: service_started
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ${MONOREPO_URL}#${REPO_REF}:NexoFrontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_HOST: ${NEXT_PUBLIC_API_HOST}
+    container_name: nexosalud-frontend
+    environment:
+      - NEXT_PUBLIC_API_HOST=${NEXT_PUBLIC_API_HOST}
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      gateway-service:
+        condition: service_started
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+networks:
+  nexo-network:
+    driver: bridge
+
+volumes:
+  pgdata:
