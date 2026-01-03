@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   postgres:
     image: postgres:15
@@ -22,14 +20,14 @@ services:
 
   users-service:
     build:
-      # Contexto Git remoto (monorepo) + subdirectorio del módulo
-      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-users
-      dockerfile: Dockerfile
+      # Contexto Git remoto (repositorio del módulo users)
+      context: ${USERS_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-users.git#main}
+      dockerfile: ${USERS_DOCKERFILE_PATH:-Dockerfile}
     container_name: nexosalud-users
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${USERS_PORT}
-      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
       - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
       - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
     depends_on:
@@ -41,13 +39,13 @@ services:
 
   employees-service:
     build:
-      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-employees
-      dockerfile: Dockerfile
+      context: ${EMPLOYEES_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-employees.git#main}
+      dockerfile: ${EMPLOYEES_DOCKERFILE_PATH:-Dockerfile}
     container_name: nexosalud-employees
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${EMPLOYEES_PORT}
-      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
       - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
       - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
@@ -68,13 +66,13 @@ services:
 
   schedule-service:
     build:
-      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-schedule
-      dockerfile: Dockerfile
+      context: ${SCHEDULE_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-schedule.git#main}
+      dockerfile: ${SCHEDULE_DOCKERFILE_PATH:-Dockerfile}
     container_name: nexosalud-schedule
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${SCHEDULE_PORT}
-      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
       - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
       - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
     depends_on:
@@ -86,13 +84,13 @@ services:
 
   gateway-service:
     build:
-      context: ${MONOREPO_URL}#${REPO_REF}:backend-module-gateway
-      dockerfile: Dockerfile
+      context: ${GATEWAY_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-gateway.git#main}
+      dockerfile: ${GATEWAY_DOCKERFILE_PATH:-Dockerfile}
     container_name: nexosalud-gateway
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${GATEWAY_PORT}
-      - SPRING_R2DBC_URL=${SPRING_R2DBC_URL}
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
       - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
       - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
@@ -101,7 +99,7 @@ services:
       - EMPLOYEES_SERVICE_URL=http://employees-service:${EMPLOYEES_PORT}
       - SCHEDULE_SERVICE_URL=http://schedule-service:${SCHEDULE_PORT}
     ports:
-      - "8080:${GATEWAY_PORT}"
+      - "${GATEWAY_PORT}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,23 +113,6 @@ services:
       - nexo-network
     restart: unless-stopped
 
-  frontend:
-    build:
-      context: ${MONOREPO_URL}#${REPO_REF}:NexoFrontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_HOST: ${NEXT_PUBLIC_API_HOST}
-    container_name: nexosalud-frontend
-    environment:
-      - NEXT_PUBLIC_API_HOST=${NEXT_PUBLIC_API_HOST}
-    ports:
-      - "${FRONTEND_PORT}:3000"
-    depends_on:
-      gateway-service:
-        condition: service_started
-    networks:
-      - nexo-network
-    restart: unless-stopped
 
 networks:
   nexo-network:
