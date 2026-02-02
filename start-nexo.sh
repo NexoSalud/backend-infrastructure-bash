@@ -21,7 +21,7 @@ fi
 # Compilar todos los módulos
 echo "🔨 Compilando módulos..."
 
-modules=("backend-module-gateway" "backend-module-users" "backend-module-employees" "backend-module-schedule")
+modules=("backend-module-gateway" "backend-module-users" "backend-module-employees" "backend-module-schedule" "backend-module-appointments")
 
 for module in "${modules[@]}"; do
     if [ -d "$module" ]; then
@@ -41,6 +41,7 @@ echo "   • Gateway (puerto 8080): cd backend-module-gateway && mvn spring-boot
 echo "   • Users (puerto 8081): cd backend-module-users && mvn spring-boot:run"
 echo "   • Employees (puerto 8082): cd backend-module-employees && mvn spring-boot:run"
 echo "   • Schedule (puerto 8083): cd backend-module-schedule && mvn spring-boot:run"
+echo "   • Appointments (puerto 8084): cd backend-module-appointments && mvn spring-boot:run"
 echo ""
 echo "🔗 URLs importantes:"
 echo "   • Swagger UI: http://localhost:8080/swagger-ui.html"

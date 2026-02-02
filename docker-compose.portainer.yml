@@ -1,29 +1,30 @@
 services:
   postgres:
     image: postgres:15
-    container_name: nexosalud-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h 127.0.0.1"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 60s
     networks:
       - nexo-network
+    restart: unless-stopped
 
   users-service:
     build:
       # Contexto Git remoto (repositorio del módulo users)
-      context: ${USERS_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-users.git#main}
+      context: ${USERS_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-users.git#master}
       dockerfile: ${USERS_DOCKERFILE_PATH:-Dockerfile}
-    container_name: nexosalud-users
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${USERS_PORT}
@@ -39,9 +40,8 @@ services:
 
   employees-service:
     build:
-      context: ${EMPLOYEES_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-employees.git#main}
+      context: ${EMPLOYEES_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-employees.git#master}
       dockerfile: ${EMPLOYEES_DOCKERFILE_PATH:-Dockerfile}
-    container_name: nexosalud-employees
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${EMPLOYEES_PORT}
@@ -66,9 +66,8 @@ services:
 
   schedule-service:
     build:
-      context: ${SCHEDULE_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-schedule.git#main}
+      context: ${SCHEDULE_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-schedule.git#master}
       dockerfile: ${SCHEDULE_DOCKERFILE_PATH:-Dockerfile}
-    container_name: nexosalud-schedule
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${SCHEDULE_PORT}
@@ -84,9 +83,8 @@ services:
 
   gateway-service:
     build:
-      context: ${GATEWAY_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-gateway.git#main}
+      context: ${GATEWAY_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-gateway.git#master}
       dockerfile: ${GATEWAY_DOCKERFILE_PATH:-Dockerfile}
-    container_name: nexosalud-gateway
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
       - SERVER_PORT=${GATEWAY_PORT}
@@ -119,4 +117,4 @@ networks:
     driver: bridge
 
 volumes:
-  pgdata:
+  pgdata: {}

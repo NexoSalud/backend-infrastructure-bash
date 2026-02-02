@@ -83,6 +83,24 @@ services:
       - nexo-network
     restart: unless-stopped
 
+  # Appointments Service
+  appointments-service:
+    build:
+      context: ./backend-module-appointments
+      dockerfile: Dockerfile
+    container_name: nexosalud-appointments
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8084
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+      - APPOINTMENT_DEFAULT_DURATION=20
+      - VALIDATION_MOCK_MODE=true
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
   # Gateway Service (Only service exposed to host)
   gateway-service:
     build:
@@ -101,6 +119,7 @@ services:
       - USERS_SERVICE_URL=http://users-service:8081
       - EMPLOYEES_SERVICE_URL=http://employees-service:8082
       - SCHEDULE_SERVICE_URL=http://schedule-service:8083
+      - APPOINTMENTS_SERVICE_URL=http://appointments-service:8084
     ports:
       - "8080:8080"  # Only the gateway is exposed to the host
     depends_on:
@@ -111,6 +130,8 @@ services:
       employees-service:
         condition: service_started
       schedule-service:
+        condition: service_started
+      appointments-service:
         condition: service_started
     networks:
       - nexo-network
