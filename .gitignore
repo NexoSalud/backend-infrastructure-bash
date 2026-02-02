@@ -1,2 +1,8 @@
 logs/
 .service_pids
+NexoFrontend/
+backend-module-employees/
+backend-module-gateway/
+backend-module-users/
+backend-module-schedule/
+backend-module-appointments/
