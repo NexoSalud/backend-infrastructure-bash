@@ -61,14 +61,20 @@ start_module "$SCRIPT_DIR/backend-module-users" "$USERS_PORT" "users"
 start_module "$SCRIPT_DIR/backend-module-schedule" "$SCHEDULE_PORT" "schedule"
 # start appointments
 start_module "$SCRIPT_DIR/backend-module-appointments" "$APPOINTMENTS_PORT" "appointments"
-# start gateway (depends on employees/users/schedule)
+
+# start history-template
+start_module "$SCRIPT_DIR/backend-history-template" "$HISTORY_TEMPLATE_PORT" "history-template"
+
+# start gateway (depends on employees/users/schedule/history-template)
 start_module "$SCRIPT_DIR/backend-module-gateway" "$GATEWAY_PORT" "gateway"
 
 # Wait for ports
+
 wait_for_port "localhost" "$EMPLOYEES_PORT" || echo "Warning: employees did not start cleanly"
 wait_for_port "localhost" "$USERS_PORT" || echo "Warning: users did not start cleanly"
 wait_for_port "localhost" "$SCHEDULE_PORT" || echo "Warning: schedule did not start cleanly"
 wait_for_port "localhost" "$APPOINTMENTS_PORT" || echo "Warning: appointments did not start cleanly"
+wait_for_port "localhost" "$HISTORY_TEMPLATE_PORT" || echo "Warning: history-template did not start cleanly"
 wait_for_port "localhost" "$GATEWAY_PORT" || echo "Warning: gateway did not start cleanly"
 
 echo "Services started. PIDs recorded in $PIDS_FILE"
