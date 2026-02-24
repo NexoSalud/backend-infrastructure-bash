@@ -6,6 +6,7 @@ echo "Cerrando todos los procesos Java en ejecución..."
 pkill -f java
 
 git fetch --all
+git checkout $BRANCH 
 git merge origin/$BRANCH
 
 # Validar parámetro de rama
@@ -17,6 +18,7 @@ for dir in backend-*; do
         echo "Procesando $dir..."
         cd "$dir"
         git fetch --all
+        git checkout $BRANCH -f
         git merge origin/$BRANCH
         cd ..
     fi
