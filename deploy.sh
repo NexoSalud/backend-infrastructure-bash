@@ -5,6 +5,9 @@
 echo "Cerrando todos los procesos Java en ejecución..."
 pkill -f java
 
+git fetch --all
+git merge origin/$BRANCH
+
 # Validar parámetro de rama
 BRANCH="${1:-develop}"
 echo "Usando rama: $BRANCH"
