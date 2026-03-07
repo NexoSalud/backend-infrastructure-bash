@@ -30,6 +30,7 @@ get_url_for_name() {
     users) echo "$USERS_URL" ;;
     schedule) echo "$SCHEDULE_URL" ;;
     appointments) echo "$APPOINTMENTS_URL" ;;
+    convenios) echo "$CONVENIOS_URL" ;;
     gateway) echo "$GATEWAY_URL" ;;
     *) echo "http://localhost" ;;
   esac

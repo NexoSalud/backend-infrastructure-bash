@@ -62,6 +62,9 @@ start_module "$SCRIPT_DIR/backend-module-schedule" "$SCHEDULE_PORT" "schedule"
 # start appointments
 start_module "$SCRIPT_DIR/backend-module-appointments" "$APPOINTMENTS_PORT" "appointments"
 
+# start convenios
+start_module "$SCRIPT_DIR/backend-module-convenios" "$CONVENIOS_PORT" "convenios"
+
 # start history-template
 start_module "$SCRIPT_DIR/backend-history-template" "$HISTORY_TEMPLATE_PORT" "history-template"
 
@@ -74,6 +77,7 @@ wait_for_port "localhost" "$EMPLOYEES_PORT" || echo "Warning: employees did not 
 wait_for_port "localhost" "$USERS_PORT" || echo "Warning: users did not start cleanly"
 wait_for_port "localhost" "$SCHEDULE_PORT" || echo "Warning: schedule did not start cleanly"
 wait_for_port "localhost" "$APPOINTMENTS_PORT" || echo "Warning: appointments did not start cleanly"
+wait_for_port "localhost" "$CONVENIOS_PORT" || echo "Warning: convenios did not start cleanly"
 wait_for_port "localhost" "$HISTORY_TEMPLATE_PORT" || echo "Warning: history-template did not start cleanly"
 wait_for_port "localhost" "$GATEWAY_PORT" || echo "Warning: gateway did not start cleanly"
 

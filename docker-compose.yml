@@ -102,6 +102,25 @@ services:
     restart: unless-stopped
 
 
+  # Convenios Service
+  convenios-service:
+    build:
+      context: ./backend-module-convenios
+      dockerfile: Dockerfile
+    container_name: nexosalud-convenios
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8086
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
   # History Template Service
   history-template-service:
     build:
@@ -138,6 +157,7 @@ services:
       - SCHEDULE_SERVICE_URL=http://schedule-service:8083
       - APPOINTMENTS_SERVICE_URL=http://appointments-service:8084
       - HISTORY_TEMPLATE_SERVICE_URL=http://history-template-service:8085
+      - CONVENIOS_SERVICE_URL=http://convenios-service:8086
     ports:
       - "8080:8080"  # Only the gateway is exposed to the host
     depends_on:
@@ -152,6 +172,8 @@ services:
       appointments-service:
         condition: service_started
       history-template-service:
+        condition: service_started
+      convenios-service:
         condition: service_started
     networks:
       - nexo-network

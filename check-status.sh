@@ -37,7 +37,7 @@ fi
 
 # Verificar puertos
 echo "3. Verificando puertos..."
-for port in 8080 8081 8082 8083; do
+for port in 8080 8081 8082 8083 8084 8085 8086; do
     if lsof -i :$port > /dev/null 2>&1; then
         echo "   ✅ Puerto $port está en uso"
     else
@@ -51,4 +51,7 @@ echo "   🐘 Base de datos: ./start-db.sh"
 echo "   🌐 Gateway: ./start-gateway.sh"
 echo "   👥 Users: ./start-users.sh"
 echo "   👔 Employees: ./start-employees.sh"
+echo "   📅 Schedule: ./start-schedule.sh"
+echo "   📅 Appointments: ./start-appointments.sh"
+echo "   🤝 Convenios: ./start-convenios.sh"
 echo "   📅 Schedule: ./start-schedule.sh"
