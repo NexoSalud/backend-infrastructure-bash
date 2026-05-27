@@ -71,6 +71,7 @@ services:
       - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
       - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
       - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - SPRING_FLYWAY_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
       - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationAndValidation1234567890}
       - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
       - EMAIL_PORT=${EMAIL_PORT:-587}
