@@ -2,7 +2,7 @@
 # NexoSalud – Stack completo para Portainer
 #
 # ANTES DE DESPLEGAR: crear la red en el servidor cloud:
-#   docker network create nexo-network
+#   docker network create nexo-backend-network
 #
 # Despliegue:
 #   Stacks → Add Stack → Repository
@@ -35,7 +35,7 @@ services:
       retries: 10
       start_period: 30s
     networks:
-      nexo-network:
+      nexo-backend-network:
         aliases:
           - postgres
     restart: unless-stopped
@@ -60,7 +60,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
   # ─── Employees Service ────────────────────────────────────────
@@ -93,7 +93,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
   # ─── Schedule Service ─────────────────────────────────────────
@@ -116,7 +116,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
   # ─── Appointments Service ─────────────────────────────────────
@@ -141,7 +141,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
   # ─── History Template Service ─────────────────────────────────
@@ -164,7 +164,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
   # ─── Convenios Service ────────────────────────────────────────
@@ -187,7 +187,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
   # ─── Billing / Recaudo Service ────────────────────────────────
@@ -213,7 +213,7 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
   # ─── Gateway Service (único puerto expuesto) ──────────────────
@@ -261,13 +261,13 @@ services:
       billing-service:
         condition: service_started
     networks:
-      - nexo-network
+      - nexo-backend-network
     restart: unless-stopped
 
 # Red declarada como externa — debe crearse manualmente antes del deploy:
-#   docker network create nexo-network
+#   docker network create nexo-backend-network
 networks:
-  nexo-network:
+  nexo-backend-network:
     external: true
 
 volumes:

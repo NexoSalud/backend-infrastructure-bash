@@ -15,9 +15,9 @@ docker network ls 2>&1
 
 echo ""
 echo "======================================================"
-echo "3. DETALLE DE LA RED nexo-network (si existe)"
+echo "3. DETALLE DE LA RED nexo-backend-network (si existe)"
 echo "======================================================"
-docker network inspect nexo-network 2>&1 | python3 -c "
+docker network inspect nexo-backend-network 2>&1 | python3 -c "
 import sys, json
 try:
     data = json.load(sys.stdin)

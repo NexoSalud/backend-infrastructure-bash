@@ -22,7 +22,7 @@ Conectarse al servidor cloud por SSH y ejecutar:
 
 ```bash
 # 1. Crear la red Docker externa (solo una vez)
-docker network create nexo-network
+docker network create nexo-backend-network
 
 # 2. Limpiar cache de builds anteriores
 docker builder prune -af
@@ -30,7 +30,7 @@ docker image prune -af
 ```
 
 > Por qué es necesario: Portainer prefija los nombres de red con el nombre
-> del stack (ej: `nexosalud_nexo-network`), lo que impide que los contenedores
+> del stack (ej: `nexosalud_nexo-backend-network`), lo que impide que los contenedores
 > se encuentren entre sí por hostname. Al declararla como `external: true`,
 > Docker usa la red tal como fue creada, sin prefijos.
 
@@ -85,9 +85,9 @@ Luego en Portainer: cambiar `DEPLOY_VERSION` a un nuevo valor → **Update the s
 
 ```bash
 # En el servidor cloud:
-docker network inspect nexo-network | grep -E "Name|IPv4"
+docker network inspect nexo-backend-network | grep -E "Name|IPv4"
 docker ps --format "table {{.Names}}\t{{.Status}}"
 curl http://localhost:8080/api/v1/employees/health
 ```
 
-Todos los contenedores deben aparecer en la red `nexo-network`.
+Todos los contenedores deben aparecer en la red `nexo-backend-network`.
