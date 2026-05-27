@@ -10,7 +10,8 @@
 # Variables requeridas (pegar en "Environment variables"):
 #   Ver .env.portainer.example
 #
-# Para forzar rebuild al redesplegar, cambiar DEPLOY_VERSION.
+# Para forzar rebuild completo: cambiar DEPLOY_VERSION a un nuevo valor.
+# Ejemplo: DEPLOY_VERSION=20260527-1
 ###############################################################
 
 services:
@@ -45,7 +46,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/users-service:develop
+    image: nexosalud/users-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-users
     environment:
@@ -68,7 +69,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/employees-service:develop
+    image: nexosalud/employees-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-employees
     environment:
@@ -101,7 +102,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/schedule-service:develop
+    image: nexosalud/schedule-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-schedule
     environment:
@@ -124,7 +125,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/appointments-service:develop
+    image: nexosalud/appointments-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-appointments
     environment:
@@ -149,7 +150,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/history-service:develop
+    image: nexosalud/history-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-history
     environment:
@@ -172,7 +173,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/convenios-service:develop
+    image: nexosalud/convenios-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-convenios
     environment:
@@ -195,7 +196,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/billing-service:develop
+    image: nexosalud/billing-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-billing
     environment:
@@ -221,7 +222,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
-    image: nexosalud/gateway-service:develop
+    image: nexosalud/gateway-service:${DEPLOY_VERSION:-latest}
     pull_policy: build
     container_name: nexosalud-gateway
     environment:

@@ -16,25 +16,50 @@
 
 ---
 
-## Paso 1 — Generar GitHub Personal Access Token
+## Primer despliegue
 
-1. Ir a `github.com/settings/tokens` → **Generate new token (classic)**
+### 1. Limpiar cache Docker en el servidor (SSH)
+
+```bash
+# Conectarse al servidor cloud por SSH, luego:
+docker builder prune -af
+docker image prune -af
+```
+
+### 2. Generar GitHub Personal Access Token
+
+1. `github.com/settings/tokens` → **Generate new token (classic)**
 2. Nombre: `portainer-nexosalud`
-3. Scopes: marcar **`repo`** (acceso completo a repos privados)
-4. Copiar el token generado (`ghp_...`)
+3. Scopes: marcar **`repo`**
+4. Copiar el token (`ghp_...`)
 
-> El token se usa **solo durante el build** para que Docker pueda clonar
-> los repos privados vía HTTPS. No queda expuesto en los contenedores.
+### 3. Desplegar en Portainer
+
+1. **Stacks → Add Stack → Repository**
+2. URL: `git@github.com:NexoSalud/backend-infrastructure-bash.git`
+3. Branch: `develop`
+4. Compose path: `docker-compose.portainer.yml`
+5. En **Environment variables** pegar el contenido de `.env.portainer.example`
+6. **Deploy the stack**
 
 ---
 
-## Paso 2 — Desplegar el stack en Portainer
+## Redesplegar (actualizar código)
 
-1. **Stacks → Add Stack**
-2. Elegir **Repository** o **Upload** con `docker-compose.portainer.yml`
-3. En **Environment variables** agregar todas las variables de `.env.portainer.example`
-4. Reemplazar `GH_TOKEN` con el token generado en el paso anterior
-5. **Deploy the stack**
+Cada vez que haya cambios en los repos de los módulos:
+
+### 1. Limpiar imágenes anteriores en el servidor (SSH)
+
+```bash
+docker rmi $(docker images "nexosalud/*" -q) --force 2>/dev/null || true
+docker builder prune -af
+```
+
+### 2. Cambiar DEPLOY_VERSION en Portainer
+
+En el stack → **Editor** → cambiar `DEPLOY_VERSION` a un nuevo valor (ej: `20260528-1`) → **Update the stack**.
+
+Esto garantiza que Docker construya imágenes con un tag nuevo, sin reutilizar cache.
 
 ---
 
@@ -42,13 +67,13 @@
 
 | Variable | Descripción | Obligatorio |
 |---|---|---|
+| `DEPLOY_VERSION` | Tag único por deploy (ej: `20260527-1`) | ✅ cambiar en cada redeploy |
 | `GH_TOKEN` | GitHub PAT con scope `repo` | ✅ |
 | `POSTGRES_PASSWORD` | Contraseña de la BD | ✅ |
 | `JWT_SECRET` | Clave JWT (mín. 32 chars) | ✅ |
 | `EMAIL_*` | Credenciales SMTP | ✅ |
 | `AUTH_MOCK_MODE` | `false` en producción | ✅ |
 | `GATEWAY_HOST_PORT` | Puerto expuesto (default 8080) | opcional |
-| `POSTGRES_HOST_PORT` | Puerto BD expuesto (default 5432) | opcional |
 
 ---
 
@@ -71,4 +96,4 @@ curl http://TU_SERVIDOR:8080/api/v1/employees/health
 ```
 
 > El primer build tarda ~15 min (Maven descarga dependencias y compila).
-> Las siguientes veces usa el cache de capas de Docker.
+> Los siguientes builds son más rápidos gracias al cache de dependencias Maven.
