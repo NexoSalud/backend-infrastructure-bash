@@ -2,25 +2,15 @@
 # NexoSalud – Stack completo para Portainer
 #
 # Despliegue:
-#   Stacks → Add Stack → Repository
-#   URL:          git@github.com:NexoSalud/backend-infrastructure-bash.git
+#   Stacks → Add Stack → Repository  (o Upload)
 #   Branch:       develop
 #   Compose path: docker-compose.portainer.yml
-#   Auth:         SSH key configurada en Portainer con acceso a NexoSalud
 #
-# Cada módulo se construye desde su propio repositorio Git (rama develop).
-# Portainer necesita una SSH key con acceso a la organización NexoSalud.
+# Variable requerida para repos privados:
+#   GH_TOKEN = GitHub Personal Access Token con scope "repo"
+#   Generarlo en: github.com/settings/tokens → Classic → repo ✓
 #
-# Servicios:
-#   postgres             → BD compartida (healthcheck)
-#   users-service        → :8081  pacientes / usuarios
-#   employees-service    → :8082  personal, roles, autenticación
-#   schedule-service     → :8083  agendas médicas
-#   appointments-service → :8084  citas médicas
-#   history-service      → :8085  historias clínicas / form-builder
-#   convenios-service    → :8086  convenios EPS
-#   billing-service      → :8087  recaudo / facturación
-#   gateway-service      → :8080  único puerto expuesto al exterior
+# Todos los módulos se clonan vía HTTPS+token desde la rama develop.
 ###############################################################
 
 services:
@@ -51,7 +41,7 @@ services:
   # ─── Users Service ────────────────────────────────────────────
   users-service:
     build:
-      context: git@github.com:NexoSalud/backend-module-users.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-users.git#develop
       dockerfile: Dockerfile
     image: nexosalud/users-service:develop
     container_name: nexosalud-users
@@ -71,7 +61,7 @@ services:
   # ─── Employees Service ────────────────────────────────────────
   employees-service:
     build:
-      context: git@github.com:NexoSalud/backend-module-employees.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-employees.git#develop
       dockerfile: Dockerfile
     image: nexosalud/employees-service:develop
     container_name: nexosalud-employees
@@ -100,7 +90,7 @@ services:
   # ─── Schedule Service ─────────────────────────────────────────
   schedule-service:
     build:
-      context: git@github.com:NexoSalud/backend-module-schedule.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-schedule.git#develop
       dockerfile: Dockerfile
     image: nexosalud/schedule-service:develop
     container_name: nexosalud-schedule
@@ -120,7 +110,7 @@ services:
   # ─── Appointments Service ─────────────────────────────────────
   appointments-service:
     build:
-      context: git@github.com:NexoSalud/backend-module-appointments.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-appointments.git#develop
       dockerfile: Dockerfile
     image: nexosalud/appointments-service:develop
     container_name: nexosalud-appointments
@@ -142,7 +132,7 @@ services:
   # ─── History Template Service ─────────────────────────────────
   history-service:
     build:
-      context: git@github.com:NexoSalud/backend-history-template.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-history-template.git#develop
       dockerfile: Dockerfile
     image: nexosalud/history-service:develop
     container_name: nexosalud-history
@@ -162,7 +152,7 @@ services:
   # ─── Convenios Service ────────────────────────────────────────
   convenios-service:
     build:
-      context: git@github.com:NexoSalud/backend-module-convenios.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-convenios.git#develop
       dockerfile: Dockerfile
     image: nexosalud/convenios-service:develop
     container_name: nexosalud-convenios
@@ -182,7 +172,7 @@ services:
   # ─── Billing / Recaudo Service ────────────────────────────────
   billing-service:
     build:
-      context: git@github.com:NexoSalud/backend-module-billing.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-billing.git#develop
       dockerfile: Dockerfile
     image: nexosalud/billing-service:develop
     container_name: nexosalud-billing
@@ -205,7 +195,7 @@ services:
   # ─── Gateway Service (único puerto expuesto) ──────────────────
   gateway-service:
     build:
-      context: git@github.com:NexoSalud/backend-module-gateway.git#develop
+      context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-gateway.git#develop
       dockerfile: Dockerfile
     image: nexosalud/gateway-service:develop
     container_name: nexosalud-gateway

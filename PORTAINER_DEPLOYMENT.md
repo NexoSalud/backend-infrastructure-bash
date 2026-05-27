@@ -1,100 +1,48 @@
 # Despliegue NexoSalud en Portainer
 
-## Arquitectura de repositorios
+## Servicios
 
-El proyecto usa un repo orquestador + repos independientes por módulo:
-
-| Repositorio | Contenido |
-|---|---|
-| `NexoSalud/backend-infrastructure-bash` | Scripts, docker-compose, configuración |
-| `NexoSalud/backend-module-users` | Servicio de pacientes/usuarios |
-| `NexoSalud/backend-module-employees` | Servicio de personal y autenticación |
-| `NexoSalud/backend-module-schedule` | Servicio de agendas médicas |
-| `NexoSalud/backend-module-appointments` | Servicio de citas |
-| `NexoSalud/backend-history-template` | Servicio de historias clínicas |
-| `NexoSalud/backend-module-convenios` | Servicio de convenios EPS |
-| `NexoSalud/backend-module-billing` | Servicio de recaudo/facturación |
-| `NexoSalud/backend-module-gateway` | Gateway (único puerto expuesto) |
-
-Todos los módulos usan la rama **`develop`**.
+| Servicio             | Puerto | Descripción                        |
+|----------------------|--------|------------------------------------|
+| postgres             | 5432   | Base de datos PostgreSQL 15        |
+| users-service        | 8081   | Pacientes / usuarios               |
+| employees-service    | 8082   | Personal, roles, autenticación     |
+| schedule-service     | 8083   | Agendas médicas                    |
+| appointments-service | 8084   | Citas médicas                      |
+| history-service      | 8085   | Historias clínicas / form-builder  |
+| convenios-service    | 8086   | Convenios EPS                      |
+| billing-service      | 8087   | Recaudo / facturación              |
+| **gateway-service**  | **8080** | Único puerto expuesto al exterior |
 
 ---
 
-## Servicios y puertos
+## Paso 1 — Generar GitHub Personal Access Token
 
-| Servicio             | Puerto interno | Descripción                        |
-|----------------------|----------------|------------------------------------|
-| postgres             | 5432           | Base de datos PostgreSQL 15        |
-| users-service        | 8081           | Pacientes / usuarios               |
-| employees-service    | 8082           | Personal, roles, autenticación     |
-| schedule-service     | 8083           | Agendas médicas                    |
-| appointments-service | 8084           | Citas médicas                      |
-| history-service      | 8085           | Historias clínicas / form-builder  |
-| convenios-service    | 8086           | Convenios EPS                      |
-| billing-service      | 8087           | Recaudo / facturación              |
-| gateway-service      | **8080**       | Único puerto expuesto al exterior  |
+1. Ir a `github.com/settings/tokens` → **Generate new token (classic)**
+2. Nombre: `portainer-nexosalud`
+3. Scopes: marcar **`repo`** (acceso completo a repos privados)
+4. Copiar el token generado (`ghp_...`)
+
+> El token se usa **solo durante el build** para que Docker pueda clonar
+> los repos privados vía HTTPS. No queda expuesto en los contenedores.
 
 ---
 
-## Requisito previo: SSH key en Portainer
+## Paso 2 — Desplegar el stack en Portainer
 
-Todos los repos son privados bajo la organización `NexoSalud`. Docker BuildKit
-necesita acceso SSH para clonarlos durante el build.
-
-### 1. Generar una deploy key (si no existe)
-
-En el servidor donde corre Portainer:
-
-```bash
-ssh-keygen -t ed25519 -C "portainer-nexosalud" -f ~/.ssh/nexosalud_deploy -N ""
-cat ~/.ssh/nexosalud_deploy.pub
-```
-
-### 2. Agregar la key a GitHub
-
-Ir a `github.com/organizations/NexoSalud/settings/keys` y agregar la clave
-pública como **Organization Deploy Key** con permiso de lectura.
-
-### 3. Configurar la key en Portainer
-
-`Settings → Credentials → Add credential`
-- Name: `nexosalud-ssh`
-- Type: SSH
-- Pegar el contenido de `~/.ssh/nexosalud_deploy` (clave privada)
+1. **Stacks → Add Stack**
+2. Elegir **Repository** o **Upload** con `docker-compose.portainer.yml`
+3. En **Environment variables** agregar todas las variables de `.env.portainer.example`
+4. Reemplazar `GH_TOKEN` con el token generado en el paso anterior
+5. **Deploy the stack**
 
 ---
 
-## Despliegue del stack
+## Variables de entorno
 
-### Opción A — Desde repositorio Git (recomendado)
-
-1. **Stacks → Add Stack → Repository**
-2. Completar:
-   - URL: `git@github.com:NexoSalud/backend-infrastructure-bash.git`
-   - Branch: `develop`
-   - Compose path: `docker-compose.portainer.yml`
-   - Authentication: seleccionar `nexosalud-ssh`
-3. En **Environment variables** pegar el contenido de `.env.portainer.example`
-4. **Deploy the stack**
-
-### Opción B — Upload manual
-
-1. **Stacks → Add Stack → Upload**
-2. Subir `docker-compose.portainer.yml`
-3. Pegar variables de entorno
-4. **Deploy the stack**
-
-> En este caso el daemon de Docker del servidor necesita tener la SSH key
-> configurada en `~/.ssh/config` para poder clonar los repos durante el build.
-
----
-
-## Variables de entorno requeridas
-
-Copiar `.env.portainer.example` y ajustar:
-
-| Variable | Descripción | Cambiar en prod |
+| Variable | Descripción | Obligatorio |
 |---|---|---|
+| `GH_TOKEN` | GitHub PAT con scope `repo` | ✅ |
 | `POSTGRES_PASSWORD` | Contraseña de la BD | ✅ |
 | `JWT_SECRET` | Clave JWT (mín. 32 chars) | ✅ |
 | `EMAIL_*` | Credenciales SMTP | ✅ |
@@ -104,7 +52,7 @@ Copiar `.env.portainer.example` y ajustar:
 
 ---
 
-## Verificar el despliegue
+## Verificar
 
 ```
 nexosalud-postgres      ✅ healthy
@@ -122,5 +70,5 @@ nexosalud-gateway       ✅ running  → :8080
 curl http://TU_SERVIDOR:8080/api/v1/employees/health
 ```
 
-> El primer build tarda ~15 min porque Maven descarga dependencias y compila
-> cada servicio. Las siguientes veces usa el cache de capas de Docker.
+> El primer build tarda ~15 min (Maven descarga dependencias y compila).
+> Las siguientes veces usa el cache de capas de Docker.
