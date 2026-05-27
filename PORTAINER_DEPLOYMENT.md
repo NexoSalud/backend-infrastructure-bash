@@ -1,6 +1,26 @@
 # Despliegue NexoSalud en Portainer
 
-## Servicios incluidos
+## Arquitectura de repositorios
+
+El proyecto usa un repo orquestador + repos independientes por módulo:
+
+| Repositorio | Contenido |
+|---|---|
+| `NexoSalud/backend-infrastructure-bash` | Scripts, docker-compose, configuración |
+| `NexoSalud/backend-module-users` | Servicio de pacientes/usuarios |
+| `NexoSalud/backend-module-employees` | Servicio de personal y autenticación |
+| `NexoSalud/backend-module-schedule` | Servicio de agendas médicas |
+| `NexoSalud/backend-module-appointments` | Servicio de citas |
+| `NexoSalud/backend-history-template` | Servicio de historias clínicas |
+| `NexoSalud/backend-module-convenios` | Servicio de convenios EPS |
+| `NexoSalud/backend-module-billing` | Servicio de recaudo/facturación |
+| `NexoSalud/backend-module-gateway` | Gateway (único puerto expuesto) |
+
+Todos los módulos usan la rama **`develop`**.
+
+---
+
+## Servicios y puertos
 
 | Servicio             | Puerto interno | Descripción                        |
 |----------------------|----------------|------------------------------------|
@@ -16,56 +36,75 @@
 
 ---
 
-## Cómo desplegar en Portainer
+## Requisito previo: SSH key en Portainer
 
-### 1. Agregar el stack desde el repositorio Git
+Todos los repos son privados bajo la organización `NexoSalud`. Docker BuildKit
+necesita acceso SSH para clonarlos durante el build.
 
-1. Ir a **Stacks → Add Stack**
-2. Seleccionar **Repository**
-3. Completar:
-   - **URL:** `git@github.com:NexoSalud/nexo.git` (o la URL HTTPS si el repo es público)
-   - **Branch:** `develop`
-   - **Compose path:** `docker-compose.portainer.yml`
-4. Si el repo es privado, configurar las credenciales SSH/token en **Authentication**
+### 1. Generar una deploy key (si no existe)
 
-### 2. Configurar las variables de entorno
+En el servidor donde corre Portainer:
 
-En la sección **Environment variables** del stack, pegar el contenido de `.env.portainer.example` ajustando:
+```bash
+ssh-keygen -t ed25519 -C "portainer-nexosalud" -f ~/.ssh/nexosalud_deploy -N ""
+cat ~/.ssh/nexosalud_deploy.pub
+```
 
-| Variable | Descripción |
-|---|---|
-| `POSTGRES_PASSWORD` | Contraseña segura para la BD |
-| `JWT_SECRET` | Clave JWT (mín. 32 caracteres) |
-| `EMAIL_*` | Credenciales SMTP reales |
-| `GATEWAY_HOST_PORT` | Puerto expuesto al exterior (default: 8080) |
-| `AUTH_MOCK_MODE` | `false` en producción |
+### 2. Agregar la key a GitHub
 
-### 3. Desplegar
+Ir a `github.com/organizations/NexoSalud/settings/keys` y agregar la clave
+pública como **Organization Deploy Key** con permiso de lectura.
 
-Click **Deploy the stack**. El primer build tarda ~10-15 min porque Maven descarga dependencias y compila cada servicio. Las siguientes veces usa el cache de capas de Docker.
+### 3. Configurar la key en Portainer
+
+`Settings → Credentials → Add credential`
+- Name: `nexosalud-ssh`
+- Type: SSH
+- Pegar el contenido de `~/.ssh/nexosalud_deploy` (clave privada)
 
 ---
 
-## Por qué rutas locales y no contextos Git remotos
+## Despliegue del stack
 
-Portainer clona el repositorio raíz completo (que contiene todos los módulos como subcarpetas). Los `build.context` apuntan a rutas relativas dentro de ese clon:
+### Opción A — Desde repositorio Git (recomendado)
 
-```
-nexo/                          ← repo raíz clonado por Portainer
-├── docker-compose.portainer.yml
-├── backend-module-users/      ← context: ./backend-module-users
-├── backend-module-employees/  ← context: ./backend-module-employees
-├── backend-module-gateway/    ← context: ./backend-module-gateway
-└── ...
-```
+1. **Stacks → Add Stack → Repository**
+2. Completar:
+   - URL: `git@github.com:NexoSalud/backend-infrastructure-bash.git`
+   - Branch: `develop`
+   - Compose path: `docker-compose.portainer.yml`
+   - Authentication: seleccionar `nexosalud-ssh`
+3. En **Environment variables** pegar el contenido de `.env.portainer.example`
+4. **Deploy the stack**
 
-Esto evita el error `terminal prompts disabled` que ocurre cuando Docker BuildKit intenta clonar repos privados sin credenciales SSH disponibles en el daemon.
+### Opción B — Upload manual
+
+1. **Stacks → Add Stack → Upload**
+2. Subir `docker-compose.portainer.yml`
+3. Pegar variables de entorno
+4. **Deploy the stack**
+
+> En este caso el daemon de Docker del servidor necesita tener la SSH key
+> configurada en `~/.ssh/config` para poder clonar los repos durante el build.
+
+---
+
+## Variables de entorno requeridas
+
+Copiar `.env.portainer.example` y ajustar:
+
+| Variable | Descripción | Cambiar en prod |
+|---|---|---|
+| `POSTGRES_PASSWORD` | Contraseña de la BD | ✅ |
+| `JWT_SECRET` | Clave JWT (mín. 32 chars) | ✅ |
+| `EMAIL_*` | Credenciales SMTP | ✅ |
+| `AUTH_MOCK_MODE` | `false` en producción | ✅ |
+| `GATEWAY_HOST_PORT` | Puerto expuesto (default 8080) | opcional |
+| `POSTGRES_HOST_PORT` | Puerto BD expuesto (default 5432) | opcional |
 
 ---
 
 ## Verificar el despliegue
-
-Una vez desplegado, todos los contenedores deben estar en estado `running`:
 
 ```
 nexosalud-postgres      ✅ healthy
@@ -76,20 +115,12 @@ nexosalud-appointments  ✅ running
 nexosalud-history       ✅ running
 nexosalud-convenios     ✅ running
 nexosalud-billing       ✅ running
-nexosalud-gateway       ✅ running  → expuesto en :8080
+nexosalud-gateway       ✅ running  → :8080
 ```
 
-Probar el gateway:
 ```bash
 curl http://TU_SERVIDOR:8080/api/v1/employees/health
 ```
 
----
-
-## Actualizar un servicio
-
-Para redesplegar un servicio individual después de un push a `develop`:
-
-1. En Portainer ir al stack `nexosalud`
-2. Click **Pull and redeploy** (si está configurado con auto-update)
-3. O manualmente: seleccionar el servicio → **Recreate**
+> El primer build tarda ~15 min porque Maven descarga dependencias y compila
+> cada servicio. Las siguientes veces usa el cache de capas de Docker.
