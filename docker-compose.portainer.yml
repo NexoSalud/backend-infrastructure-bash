@@ -46,7 +46,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/users-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-users
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -69,7 +68,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/employees-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-employees
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -102,7 +100,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/schedule-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-schedule
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -125,7 +122,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/appointments-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-appointments
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -150,7 +146,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/history-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-history
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -173,7 +168,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/convenios-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-convenios
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -196,7 +190,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/billing-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-billing
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -222,7 +215,6 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/gateway-service:${DEPLOY_VERSION:-latest}
-    pull_policy: build
     container_name: nexosalud-gateway
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
