@@ -2,15 +2,15 @@
 # NexoSalud – Stack completo para Portainer
 #
 # Despliegue:
-#   Stacks → Add Stack → Repository  (o Upload)
+#   Stacks → Add Stack → Repository
+#   URL:          git@github.com:NexoSalud/backend-infrastructure-bash.git
 #   Branch:       develop
 #   Compose path: docker-compose.portainer.yml
 #
-# Variable requerida para repos privados:
-#   GH_TOKEN = GitHub Personal Access Token con scope "repo"
-#   Generarlo en: github.com/settings/tokens → Classic → repo ✓
+# Variables requeridas (pegar en "Environment variables"):
+#   Ver .env.portainer.example
 #
-# Todos los módulos se clonan vía HTTPS+token desde la rama develop.
+# Para forzar rebuild al redesplegar, cambiar DEPLOY_VERSION.
 ###############################################################
 
 services:
@@ -43,7 +43,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-users.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/users-service:develop
+    pull_policy: build
     container_name: nexosalud-users
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -63,7 +66,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-employees.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/employees-service:develop
+    pull_policy: build
     container_name: nexosalud-employees
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -93,7 +99,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-schedule.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/schedule-service:develop
+    pull_policy: build
     container_name: nexosalud-schedule
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -113,7 +122,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-appointments.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/appointments-service:develop
+    pull_policy: build
     container_name: nexosalud-appointments
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -135,7 +147,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-history-template.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/history-service:develop
+    pull_policy: build
     container_name: nexosalud-history
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -155,7 +170,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-convenios.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/convenios-service:develop
+    pull_policy: build
     container_name: nexosalud-convenios
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -175,7 +193,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-billing.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/billing-service:develop
+    pull_policy: build
     container_name: nexosalud-billing
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
@@ -198,7 +219,10 @@ services:
     build:
       context: https://${GH_TOKEN}@github.com/NexoSalud/backend-module-gateway.git#develop
       dockerfile: Dockerfile
+      args:
+        DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/gateway-service:develop
+    pull_policy: build
     container_name: nexosalud-gateway
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
