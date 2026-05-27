@@ -1,36 +1,67 @@
+###############################################################
+# NexoSalud – Stack completo para Portainer
+#
+# Despliegue desde Portainer:
+#   Stacks → Add Stack → Repository
+#   URL: git@github.com:NexoSalud/nexo.git  (o la URL del repo raíz)
+#   Branch: develop
+#   Compose path: docker-compose.portainer.yml
+#   Env vars: pegar contenido de .env.portainer.example
+#
+# Todos los servicios se construyen desde el código local del
+# repositorio raíz (rutas relativas). No se necesitan credenciales
+# adicionales para clonar repos individuales.
+#
+# Servicios:
+#   postgres             → BD compartida (healthcheck)
+#   users-service        → :8081  pacientes / usuarios
+#   employees-service    → :8082  personal, roles, autenticación
+#   schedule-service     → :8083  agendas médicas
+#   appointments-service → :8084  citas médicas
+#   history-service      → :8085  historias clínicas / form-builder
+#   convenios-service    → :8086  convenios EPS
+#   billing-service      → :8087  recaudo / facturación
+#   gateway-service      → :8080  único puerto expuesto al exterior
+###############################################################
+
 services:
+
+  # ─── Base de datos ────────────────────────────────────────────
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
+    container_name: nexosalud-postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER:     ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB:       ${POSTGRES_DB:-nexosalud}
+      PGDATA:            /var/lib/postgresql/data/pgdata
     ports:
-      - "${POSTGRES_HOST_PORT}:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h 127.0.0.1"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-nexosalud}"]
+      interval: 10s
       timeout: 5s
-      retries: 12
-      start_period: 60s
+      retries: 10
+      start_period: 30s
     networks:
       - nexo-network
     restart: unless-stopped
 
+  # ─── Users Service ────────────────────────────────────────────
   users-service:
     build:
-      # Contexto Git remoto (repositorio del módulo users)
-      context: ${USERS_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-users.git#master}
-      dockerfile: ${USERS_DOCKERFILE_PATH:-Dockerfile}
+      context: ./backend-module-users
+      dockerfile: Dockerfile
+    image: nexosalud/users-service:develop
+    container_name: nexosalud-users
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-      - SERVER_PORT=${USERS_PORT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
-      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
-      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8081
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,25 +69,28 @@ services:
       - nexo-network
     restart: unless-stopped
 
+  # ─── Employees Service ────────────────────────────────────────
   employees-service:
     build:
-      context: ${EMPLOYEES_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-employees.git#master}
-      dockerfile: ${EMPLOYEES_DOCKERFILE_PATH:-Dockerfile}
+      context: ./backend-module-employees
+      dockerfile: Dockerfile
+    image: nexosalud/employees-service:develop
+    container_name: nexosalud-employees
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-      - SERVER_PORT=${EMPLOYEES_PORT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
-      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
-      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
-      - EMAIL_HOST=${EMAIL_HOST}
-      - EMAIL_PORT=${EMAIL_PORT}
-      - EMAIL_USERNAME=${EMAIL_USERNAME}
-      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
-      - EMAIL_FROM=${EMAIL_FROM}
-      - EMAIL_RESET_PASSWORD_SUBJECT=${EMAIL_RESET_PASSWORD_SUBJECT}
-      - EMAIL_RESET_PASSWORD_TEXT=${EMAIL_RESET_PASSWORD_TEXT}
-      - EMAIL_RESET_PASSWORD_WEBSITE=${EMAIL_RESET_PASSWORD_WEBSITE}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8082
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationAndValidation1234567890}
+      - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}
+      - EMAIL_PORT=${EMAIL_PORT:-587}
+      - EMAIL_USERNAME=${EMAIL_USERNAME:-}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD:-}
+      - EMAIL_FROM=${EMAIL_FROM:-no-reply@nexosalud.com}
+      - EMAIL_RESET_PASSWORD_SUBJECT=${EMAIL_RESET_PASSWORD_SUBJECT:-Recuperación de contraseña NexoSalud}
+      - EMAIL_RESET_PASSWORD_TEXT=${EMAIL_RESET_PASSWORD_TEXT:-Para restablecer su contraseña haga clic en el siguiente enlace:}
+      - EMAIL_RESET_PASSWORD_WEBSITE=${EMAIL_RESET_PASSWORD_WEBSITE:-http://localhost:3000/reset-password}
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,16 +98,19 @@ services:
       - nexo-network
     restart: unless-stopped
 
+  # ─── Schedule Service ─────────────────────────────────────────
   schedule-service:
     build:
-      context: ${SCHEDULE_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-schedule.git#master}
-      dockerfile: ${SCHEDULE_DOCKERFILE_PATH:-Dockerfile}
+      context: ./backend-module-schedule
+      dockerfile: Dockerfile
+    image: nexosalud/schedule-service:develop
+    container_name: nexosalud-schedule
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-      - SERVER_PORT=${SCHEDULE_PORT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
-      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
-      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8083
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,23 +118,115 @@ services:
       - nexo-network
     restart: unless-stopped
 
+  # ─── Appointments Service ─────────────────────────────────────
+  appointments-service:
+    build:
+      context: ./backend-module-appointments
+      dockerfile: Dockerfile
+    image: nexosalud/appointments-service:develop
+    container_name: nexosalud-appointments
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8084
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - APPOINTMENT_DEFAULT_DURATION=${APPOINTMENT_DEFAULT_DURATION:-20}
+      - VALIDATION_MOCK_MODE=${VALIDATION_MOCK_MODE:-true}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # ─── History Template Service ─────────────────────────────────
+  history-service:
+    build:
+      context: ./backend-history-template
+      dockerfile: Dockerfile
+    image: nexosalud/history-service:develop
+    container_name: nexosalud-history
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8085
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # ─── Convenios Service ────────────────────────────────────────
+  convenios-service:
+    build:
+      context: ./backend-module-convenios
+      dockerfile: Dockerfile
+    image: nexosalud/convenios-service:develop
+    container_name: nexosalud-convenios
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8086
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # ─── Billing / Recaudo Service ────────────────────────────────
+  billing-service:
+    build:
+      context: ./backend-module-billing
+      dockerfile: Dockerfile
+    image: nexosalud/billing-service:develop
+    container_name: nexosalud-billing
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8087
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - USERS_SERVICE_URL=http://users-service:8081
+      - APPOINTMENTS_SERVICE_URL=http://appointments-service:8084
+      - HISTORY_TEMPLATE_SERVICE_URL=http://history-service:8085
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # ─── Gateway Service (único puerto expuesto) ──────────────────
   gateway-service:
     build:
-      context: ${GATEWAY_REPO_CONTEXT:-https://github.com/NexoSalud/backend-module-gateway.git#master}
-      dockerfile: ${GATEWAY_DOCKERFILE_PATH:-Dockerfile}
+      context: ./backend-module-gateway
+      dockerfile: Dockerfile
+    image: nexosalud/gateway-service:develop
+    container_name: nexosalud-gateway
     environment:
-      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
-      - SERVER_PORT=${GATEWAY_PORT}
-      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB}
-      - SPRING_R2DBC_USERNAME=${SPRING_R2DBC_USERNAME}
-      - SPRING_R2DBC_PASSWORD=${SPRING_R2DBC_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
-      - AUTH_MOCK_MODE=${AUTH_MOCK_MODE}
-      - USERS_SERVICE_URL=http://users-service:${USERS_PORT}
-      - EMPLOYEES_SERVICE_URL=http://employees-service:${EMPLOYEES_PORT}
-      - SCHEDULE_SERVICE_URL=http://schedule-service:${SCHEDULE_PORT}
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      - SERVER_PORT=8080
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/${POSTGRES_DB:-nexosalud}
+      - SPRING_R2DBC_USERNAME=${POSTGRES_USER:-postgres}
+      - SPRING_R2DBC_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - JWT_SECRET=${JWT_SECRET:-mySecretKeyForJWTTokenGenerationAndValidation1234567890}
+      - AUTH_MOCK_MODE=${AUTH_MOCK_MODE:-false}
+      - USERS_SERVICE_URL=http://users-service:8081
+      - EMPLOYEES_SERVICE_URL=http://employees-service:8082
+      - SCHEDULE_SERVICE_URL=http://schedule-service:8083
+      - APPOINTMENTS_SERVICE_URL=http://appointments-service:8084
+      - HISTORY_TEMPLATE_SERVICE_URL=http://history-service:8085
+      - CONVENIOS_SERVICE_URL=http://convenios-service:8086
+      - BILLING_SERVICE_URL=http://billing-service:8087
     ports:
-      - "${GATEWAY_PORT}:8080"
+      - "${GATEWAY_HOST_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -107,14 +236,22 @@ services:
         condition: service_started
       schedule-service:
         condition: service_started
+      appointments-service:
+        condition: service_started
+      history-service:
+        condition: service_started
+      convenios-service:
+        condition: service_started
+      billing-service:
+        condition: service_started
     networks:
       - nexo-network
     restart: unless-stopped
-
 
 networks:
   nexo-network:
     driver: bridge
 
 volumes:
-  pgdata: {}
+  pgdata:
+    driver: local

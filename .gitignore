@@ -6,3 +6,6 @@ backend-module-gateway/
 backend-module-users/
 backend-module-schedule/
 backend-module-appointments/
+backend-module-billing/
+backend-module-convenios/
+backend-history-template/

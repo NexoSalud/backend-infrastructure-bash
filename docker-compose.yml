@@ -137,6 +137,28 @@ services:
       - nexo-network
     restart: unless-stopped
 
+  # Billing / Recaudo Service
+  billing-service:
+    build:
+      context: ./backend-module-billing
+      dockerfile: Dockerfile
+    container_name: nexosalud-billing
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8087
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+      - USERS_SERVICE_URL=http://users-service:8081
+      - APPOINTMENTS_SERVICE_URL=http://appointments-service:8084
+      - HISTORY_TEMPLATE_SERVICE_URL=http://history-template-service:8085
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
   # Gateway Service (Only service exposed to host)
   gateway-service:
     build:
@@ -158,6 +180,7 @@ services:
       - APPOINTMENTS_SERVICE_URL=http://appointments-service:8084
       - HISTORY_TEMPLATE_SERVICE_URL=http://history-template-service:8085
       - CONVENIOS_SERVICE_URL=http://convenios-service:8086
+      - BILLING_SERVICE_URL=http://billing-service:8087
     ports:
       - "8080:8080"  # Only the gateway is exposed to the host
     depends_on:
@@ -174,6 +197,8 @@ services:
       history-template-service:
         condition: service_started
       convenios-service:
+        condition: service_started
+      billing-service:
         condition: service_started
     networks:
       - nexo-network
