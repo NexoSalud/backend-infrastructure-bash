@@ -1,17 +1,15 @@
 ###############################################################
 # NexoSalud – Stack completo para Portainer
 #
+# ANTES DE DESPLEGAR: crear la red en el servidor cloud:
+#   docker network create nexo-network
+#
 # Despliegue:
 #   Stacks → Add Stack → Repository
-#   URL:          git@github.com:NexoSalud/backend-infrastructure-bash.git
 #   Branch:       develop
 #   Compose path: docker-compose.portainer.yml
 #
-# Variables requeridas (pegar en "Environment variables"):
-#   Ver .env.portainer.example
-#
-# Para forzar rebuild completo: cambiar DEPLOY_VERSION a un nuevo valor.
-# Ejemplo: DEPLOY_VERSION=20260527-1
+# Para forzar rebuild: cambiar DEPLOY_VERSION (ej: 20260527-2)
 ###############################################################
 
 services:
@@ -20,6 +18,7 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: nexosalud-postgres
+    hostname: postgres
     environment:
       POSTGRES_USER:     ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -36,7 +35,9 @@ services:
       retries: 10
       start_period: 30s
     networks:
-      - nexo-network
+      nexo-network:
+        aliases:
+          - postgres
     restart: unless-stopped
 
   # ─── Users Service ────────────────────────────────────────────
@@ -263,9 +264,11 @@ services:
       - nexo-network
     restart: unless-stopped
 
+# Red declarada como externa — debe crearse manualmente antes del deploy:
+#   docker network create nexo-network
 networks:
   nexo-network:
-    driver: bridge
+    external: true
 
 volumes:
   pgdata:
