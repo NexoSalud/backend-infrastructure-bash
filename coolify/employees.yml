@@ -1,0 +1,14 @@
+name: backend-employees
+build:
+  context: ./backend-module-employees
+  dockerfile: Dockerfile
+ports:
+  - target: 8082
+env:
+  - key: SERVICE_PORT
+    value: "8082"
+healthcheck:
+  path: /actuator/health
+  interval: 30
+  timeout: 10
+  initialDelay: 60

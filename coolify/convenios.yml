@@ -1,0 +1,14 @@
+name: backend-convenios
+build:
+  context: ./backend-module-convenios
+  dockerfile: Dockerfile
+ports:
+  - target: 8086
+env:
+  - key: SERVICE_PORT
+    value: "8086"
+healthcheck:
+  path: /actuator/health
+  interval: 30
+  timeout: 10
+  initialDelay: 60

@@ -1,0 +1,14 @@
+name: backend-appointments
+build:
+  context: ./backend-module-appointments
+  dockerfile: Dockerfile
+ports:
+  - target: 8084
+env:
+  - key: SERVICE_PORT
+    value: "8084"
+healthcheck:
+  path: /actuator/health
+  interval: 30
+  timeout: 10
+  initialDelay: 60
