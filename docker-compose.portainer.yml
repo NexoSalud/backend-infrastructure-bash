@@ -146,7 +146,7 @@ services:
       args:
         DEPLOY_VERSION: ${DEPLOY_VERSION:-1}
     image: nexosalud/history-service:${DEPLOY_VERSION:-latest}
-    container_name: nexosalud-history
+    container_name: nexosalud-history0
     environment:
       - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
       - SERVER_PORT=8085
@@ -182,6 +182,75 @@ services:
       - nexo-backend-network
     restart: unless-stopped
 
+  # ─── Migración BD billing — corre una vez antes de billing-service ──
+  db-migrate:
+    image: postgres:15-alpine
+    container_name: nexosalud-db-migrate
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-backend-network
+    restart: "no"
+    command: >
+      psql
+        -h postgres
+        -U ${POSTGRES_USER:-postgres}
+        -d ${POSTGRES_DB:-nexosalud}
+        -c "
+          DO \$\$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='cuotas_moderadoras' AND column_name='valor') THEN
+              ALTER TABLE cuotas_moderadoras RENAME COLUMN valor TO valor_pesos;
+            END IF;
+          END \$\$;
+          ALTER TABLE IF EXISTS cuotas_moderadoras  ADD COLUMN IF NOT EXISTS valor_uvb      NUMERIC(10,4);
+          ALTER TABLE IF EXISTS cuotas_moderadoras  ADD COLUMN IF NOT EXISTS valor_pesos    NUMERIC(18,2) NOT NULL DEFAULT 0;
+          ALTER TABLE IF EXISTS cuotas_moderadoras  ADD COLUMN IF NOT EXISTS vigencia_desde DATE;
+          ALTER TABLE IF EXISTS topes_copago        ADD COLUMN IF NOT EXISTS valor_uvb      NUMERIC(10,4) NOT NULL DEFAULT 0;
+          ALTER TABLE IF EXISTS medical_orders      ADD COLUMN IF NOT EXISTS episodio_id    VARCHAR(50);
+          ALTER TABLE IF EXISTS medical_orders      ADD COLUMN IF NOT EXISTS appointment_id BIGINT;
+          ALTER TABLE IF EXISTS medical_orders      ADD COLUMN IF NOT EXISTS es_pyd         BOOLEAN NOT NULL DEFAULT FALSE;
+          ALTER TABLE IF EXISTS medical_orders      ADD COLUMN IF NOT EXISTS diagnosis_code VARCHAR(10);
+          ALTER TABLE IF EXISTS medical_orders      ADD COLUMN IF NOT EXISTS diagnosis_desc VARCHAR(500);
+          ALTER TABLE IF EXISTS medical_orders      ADD COLUMN IF NOT EXISTS order_notes    TEXT;
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS evento_id             UUID DEFAULT gen_random_uuid();
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS episodio_id           VARCHAR(50);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS corrige_comprobante_id VARCHAR(30);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS contrato_version      VARCHAR(10) NOT NULL DEFAULT '2.0';
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS eps_id                VARCHAR(50);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS rol_afiliado          VARCHAR(20);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS categoria_ibc         VARCHAR(5);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS tipo_servicio         VARCHAR(30);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS numero_autorizacion   VARCHAR(50);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS es_pyd                BOOLEAN NOT NULL DEFAULT FALSE;
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS exencion_codigo       VARCHAR(30);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS tipo_cobro            VARCHAR(25);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS comprobante_inmutable BOOLEAN NOT NULL DEFAULT TRUE;
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS modificado_por        BIGINT;
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS modificacion_motivo   TEXT;
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS valor_original        NUMERIC(18,2);
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS fecha_atencion        DATE;
+          ALTER TABLE IF EXISTS recaudos            ADD COLUMN IF NOT EXISTS fecha_emision_evento  TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+          ALTER TABLE IF EXISTS recaudo_items       ADD COLUMN IF NOT EXISTS tope_evento_aplicado BOOLEAN NOT NULL DEFAULT FALSE;
+          ALTER TABLE IF EXISTS recaudo_items       ADD COLUMN IF NOT EXISTS tope_anual_aplicado  BOOLEAN NOT NULL DEFAULT FALSE;
+          ALTER TABLE IF EXISTS recaudo_items       ADD COLUMN IF NOT EXISTS exencion_codigo      VARCHAR(30);
+          ALTER TABLE IF EXISTS cups_tarifas        ADD COLUMN IF NOT EXISTS es_pyd               BOOLEAN NOT NULL DEFAULT FALSE;
+          CREATE TABLE IF NOT EXISTS topes_copago (id SERIAL PRIMARY KEY, categoria VARCHAR(10) NOT NULL, tipo_tope VARCHAR(20) NOT NULL, valor_uvb NUMERIC(10,4) NOT NULL DEFAULT 0, valor_pesos NUMERIC(18,2) NOT NULL, vigencia_desde DATE NOT NULL, vigencia_hasta DATE, activo BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, CONSTRAINT uq_tope_copago UNIQUE (categoria, tipo_tope, vigencia_desde));
+          INSERT INTO topes_copago (categoria,tipo_tope,valor_uvb,valor_pesos,vigencia_desde) VALUES ('A','POR_EVENTO',2.3,97548,'2026-01-01'),('A','ANUAL',23,975476,'2026-01-01'),('B','POR_EVENTO',4.6,195095,'2026-01-01'),('B','ANUAL',46,1950952,'2026-01-01'),('C','POR_EVENTO',9.2,390190,'2026-01-01'),('C','ANUAL',92,3901904,'2026-01-01') ON CONFLICT ON CONSTRAINT uq_tope_copago DO NOTHING;
+          CREATE TABLE IF NOT EXISTS acumulado_copago_anual (id SERIAL PRIMARY KEY, patient_id BIGINT NOT NULL, anio INTEGER NOT NULL, total_copago NUMERIC(18,2) NOT NULL DEFAULT 0, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, CONSTRAINT uq_acumulado UNIQUE (patient_id, anio));
+          CREATE TABLE IF NOT EXISTS exenciones_recaudo (id SERIAL PRIMARY KEY, codigo VARCHAR(30) NOT NULL UNIQUE, descripcion VARCHAR(255) NOT NULL, fuente_marcador VARCHAR(100) NOT NULL, aplica_regimen VARCHAR(30), activo BOOLEAN NOT NULL DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+          INSERT INTO exenciones_recaudo (codigo,descripcion,fuente_marcador) VALUES ('PYD','Protección Específica y Detección Temprana','es_pyd'),('URGENCIA_VITAL','Urgencia vital Ley 1751/2015','tipo_servicio'),('MENOR','Menor de edad','fecha_nacimiento'),('GESTANTE','Gestante','marcador_clinico'),('ALTO_COSTO','Enfermedades de alto costo','perfil_paciente'),('VICTIMA','Víctimas del conflicto','marcador_poblacional'),('PROMO_PREV','Promoción y prevención','marcador_programa'),('PARTO','Atención del parto','marcador_clinico') ON CONFLICT (codigo) DO NOTHING;
+          CREATE TABLE IF NOT EXISTS contrato_b_outbox (id SERIAL PRIMARY KEY, evento_id UUID NOT NULL UNIQUE, episodio_id VARCHAR(50), recaudo_id BIGINT NOT NULL, payload JSONB NOT NULL, status VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE', intentos INTEGER NOT NULL DEFAULT 0, proximo_intento TIMESTAMP, enviado_at TIMESTAMP, error_mensaje TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+          CREATE SEQUENCE IF NOT EXISTS recaudo_seq START 1 INCREMENT 1;
+          CREATE INDEX IF NOT EXISTS idx_medical_orders_patient     ON medical_orders(patient_id, status);
+          CREATE INDEX IF NOT EXISTS idx_medical_orders_status      ON medical_orders(status);
+          CREATE INDEX IF NOT EXISTS idx_medical_orders_appointment ON medical_orders(appointment_id);
+          CREATE INDEX IF NOT EXISTS idx_medical_orders_episodio    ON medical_orders(episodio_id);
+          INSERT INTO medical_orders (patient_id,professional_id,appointment_id,cups_code,cups_description,service_type,ambito,base_tariff,iss_multiplier,es_pyd,status,order_date,created_at,updated_at) SELECT a.patient_id,a.professional_id,a.id,'890201',CASE a.functionality WHEN 'CONSULTA_PRIMERA_VEZ' THEN 'Consulta de primera vez por medicina general' WHEN 'CONSULTA_CONTROL' THEN 'Consulta de control' ELSE 'Consulta Médica' END,'CONSULTA','AMBULATORIO',0,1.0,FALSE,'PENDIENTE_RECAUDO',a.date::date,NOW(),NOW() FROM appointments a WHERE a.status NOT IN ('CANCELADA','ATENDIDA','ANULADA') AND NOT EXISTS (SELECT 1 FROM medical_orders mo WHERE mo.appointment_id=a.id);
+        "
+
   # ─── Billing / Recaudo Service ────────────────────────────────
   billing-service:
     build:
@@ -203,6 +272,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     networks:
       - nexo-backend-network
     restart: unless-stopped
@@ -251,6 +322,8 @@ services:
         condition: service_started
       billing-service:
         condition: service_started
+      db-migrate:
+        condition: service_completed_successfully
     networks:
       - nexo-backend-network
     restart: unless-stopped

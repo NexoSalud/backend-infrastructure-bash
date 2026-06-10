@@ -1,0 +1,15 @@
+  # History Template Service
+  history-template-service:
+    build:
+      context: ./backend-history-template
+      dockerfile: Dockerfile
+    container_name: nexosalud-history-template
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8085
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    networks:
+      - nexo-network
+    restart: unless-stopped
