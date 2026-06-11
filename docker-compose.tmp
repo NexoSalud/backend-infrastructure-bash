@@ -1,0 +1,77 @@
+  # Convenios Service
+  convenios-service:
+    build:
+      context: ./backend-module-convenios
+      dockerfile: Dockerfile
+    container_name: nexosalud-convenios
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8086
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # SIAU Service (PQRSDF)
+  siau-service:
+    build:
+      context: ./backend-module-siau
+      dockerfile: Dockerfile
+    container_name: nexosalud-siau
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8088
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # History Template Service
+  history-template-service:
+    build:
+      context: ./backend-history-template
+      dockerfile: Dockerfile
+    container_name: nexosalud-history-template
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8085
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # Billing / Recaudo Service
+  billing-service:
+    build:
+      context: ./backend-module-billing
+      dockerfile: Dockerfile
+    container_name: nexosalud-billing
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8087
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+      - USERS_SERVICE_URL=http://users-service:8081
+      - APPOINTMENTS_SERVICE_URL=http://appointments-service:8084
+      - HISTORY_TEMPLATE_SERVICE_URL=http://history-template-service:8085
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    networks:
+      - nexo-network
+    restart: unless-stopped

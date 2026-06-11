@@ -118,7 +118,6 @@ services:
       - nexo-network
     restart: unless-stopped
 
-
   # Convenios Service
   convenios-service:
     build:
@@ -128,6 +127,25 @@ services:
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - SERVER_PORT=8086
+      - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
+      - SPRING_R2DBC_USERNAME=postgres
+      - SPRING_R2DBC_PASSWORD=postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
+  # SIAU Service (PQRSDF)
+  siau-service:
+    build:
+      context: ./backend-module-siau
+      dockerfile: Dockerfile
+    container_name: nexosalud-siau
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8088
       - SPRING_R2DBC_URL=r2dbc:postgresql://postgres:5432/nexosalud
       - SPRING_R2DBC_USERNAME=postgres
       - SPRING_R2DBC_PASSWORD=postgres
@@ -200,6 +218,7 @@ services:
       - HISTORY_TEMPLATE_SERVICE_URL=http://history-template-service:8085
       - CONVENIOS_SERVICE_URL=http://convenios-service:8086
       - BILLING_SERVICE_URL=http://billing-service:8087
+      - SIAU_SERVICE_URL=http://siau-service:8088
     ports:
       - "8080:8080"  # Only the gateway is exposed to the host
     depends_on:
@@ -221,6 +240,8 @@ services:
         condition: service_started
       db-migrate:
         condition: service_completed_successfully
+      siau-service:
+        condition: service_started
     networks:
       - nexo-network
     restart: unless-stopped

@@ -68,7 +68,10 @@ start_module "$SCRIPT_DIR/backend-module-convenios" "$CONVENIOS_PORT" "convenios
 # start history-template
 start_module "$SCRIPT_DIR/backend-history-template" "$HISTORY_TEMPLATE_PORT" "history-template"
 
-# start gateway (depends on employees/users/schedule/history-template)
+# start siau
+start_module "$SCRIPT_DIR/backend-module-siau" "$SIAU_PORT" "siau"
+
+# start gateway (depends on all services)
 start_module "$SCRIPT_DIR/backend-module-gateway" "$GATEWAY_PORT" "gateway"
 
 # Wait for ports
@@ -79,6 +82,7 @@ wait_for_port "localhost" "$SCHEDULE_PORT" || echo "Warning: schedule did not st
 wait_for_port "localhost" "$APPOINTMENTS_PORT" || echo "Warning: appointments did not start cleanly"
 wait_for_port "localhost" "$CONVENIOS_PORT" || echo "Warning: convenios did not start cleanly"
 wait_for_port "localhost" "$HISTORY_TEMPLATE_PORT" || echo "Warning: history-template did not start cleanly"
+wait_for_port "localhost" "$SIAU_PORT" || echo "Warning: siau did not start cleanly"
 wait_for_port "localhost" "$GATEWAY_PORT" || echo "Warning: gateway did not start cleanly"
 
 echo "Services started. PIDs recorded in $PIDS_FILE"
