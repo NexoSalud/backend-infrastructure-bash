@@ -34,7 +34,7 @@ services:
       - nexo-network
     restart: "no"
     command: >
-      sh -c "psql -h postgres -U postgres -d nexosalud -f /scripts/02-billing-migrate.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/03-ebs-seed.sql"
+      sh -c "psql -h postgres -U postgres -d nexosalud -f /scripts/02-billing-migrate.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/03-ebs-seed.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/04-ebs-permissions.sql"
 
   # Users Service
   users-service:
