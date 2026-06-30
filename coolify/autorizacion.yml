@@ -1,0 +1,14 @@
+name: backend-autorizacion
+build:
+  context: ./backend-module-autorizacion
+  dockerfile: Dockerfile
+ports:
+  - target: 8090
+env:
+  - key: SERVICE_PORT
+    value: "8090"
+healthcheck:
+  path: /health
+  interval: 30
+  timeout: 10
+  initialDelay: 60

@@ -34,7 +34,7 @@ services:
       - nexo-network
     restart: "no"
     command: >
-      sh -c "psql -h postgres -U postgres -d nexosalud -f /scripts/02-billing-migrate.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/03-ebs-seed.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/04-ebs-permissions.sql"
+      sh -c "psql -h postgres -U postgres -d nexosalud -f /scripts/02-billing-migrate.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/03-ebs-seed.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/04-ebs-permissions.sql && psql -h postgres -U postgres -d nexosalud -f /scripts/06-autorizacion-schema.sql"
 
   # Users Service
   users-service:
@@ -190,6 +190,30 @@ services:
       - nexo-network
     restart: unless-stopped
 
+  # Autorización y Agendamiento Service
+  autorizacion-service:
+    build:
+      context: ./backend-module-autorizacion
+      dockerfile: Dockerfile
+    container_name: nexosalud-autorizacion
+    environment:
+      - SERVICE_PORT=8090
+      - DATABASE_URL=postgresql://postgres:5432/nexosalud
+      - DATABASE_USER=postgres
+      - DATABASE_PASS=postgres
+      - JWT_SECRET=mySecretKeyForJWTTokenGenerationAndValidation1234567890
+      - PDF_OUTPUT_DIR=/app/pdfs_autorizaciones
+    volumes:
+      - auth_pdfs_data:/app/pdfs_autorizaciones
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    networks:
+      - nexo-network
+    restart: unless-stopped
+
   # Billing / Recaudo Service
   billing-service:
     build:
@@ -238,6 +262,7 @@ services:
       - BILLING_SERVICE_URL=http://billing-service:8087
       - SIAU_SERVICE_URL=http://siau-service:8088
       - EBS_CONTRACTS_SERVICE_URL=http://ebs-contracts-service:8089
+      - AUTORIZACION_SERVICE_URL=http://autorizacion-service:8090
     ports:
       - "8080:8080"  # Only the gateway is exposed to the host
     depends_on:
@@ -263,6 +288,8 @@ services:
         condition: service_started
       ebs-contracts-service:
         condition: service_started
+      autorizacion-service:
+        condition: service_started
     networks:
       - nexo-network
     restart: unless-stopped
@@ -273,3 +300,4 @@ networks:
 
 volumes:
   pgdata:
+  auth_pdfs_data:
